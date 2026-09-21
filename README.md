@@ -62,8 +62,6 @@ panel after changes. `pnpm dev` provides a UI-only browser preview without Chrom
 extension APIs.
 
 Keep versions in `package.json` and `public/manifest.json` in sync. CI runs tests and
-uploads the built `dist` folder as an artifact. Pushes to `release` create
-`dwb-<version>-chrome.zip` with `manifest.json` at the archive root and attach it to
-a draft GitHub release. Chrome Web
-Store publishing is manual. Store installations use Chrome's extension updates;
+uploads the built `dist` folder as an artifact. GitHub releases and Chrome Web
+Store publishing are manual. Store installations use Chrome's extension updates;
 unpacked installations must be rebuilt/reloaded manually.
