@@ -1,8 +1,0 @@
-{
-	"HOME_URL": "https://deepwiki.com",
-	"URL_CHANGED_EVENT": "deepwiki://url-changed",
-	"CHECK_FOR_UPDATES_EVENT": "deepwiki://check-for-updates",
-	"CONTENT_WEBVIEW_LABEL": "deepwiki-content",
-	"TITLE_BAR_HEIGHT": 32.0,
-	"SIDEBAR_WIDTH": 300.0
-}

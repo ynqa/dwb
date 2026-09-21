@@ -1,6 +1,6 @@
 import { HOME_ORIGIN, HOME_URL } from "@/lib/constants";
 
-export type UrlKind =
+type UrlKind =
 	| { type: "home" } // Home page
 	| { type: "repository"; slug: string } // Repository page (e.g., /owner/repo)
 	| { type: "session" } // Search session page (e.g., /search/...)

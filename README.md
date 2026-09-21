@@ -1,50 +1,69 @@
 # DeepWiki Bookmarker
 
 <p align="center">
-  <img src="src-tauri/icons/icon.png" alt="DeepWiki Bookmarker Logo" width="20%" />
+  <img src="public/icons/logo.png" alt="DeepWiki Bookmarker Logo" width="160" />
 </p>
 
-DeepWiki Bookmarker (a.k.a. `dwb`) is a desktop application that tracks
-DeepWiki browsing URLs and organizes session history by repository for easy revisiting. 
+DeepWiki Bookmarker (`dwb`) is a Chrome extension that organizes your DeepWiki
+repositories and search sessions in a side panel while you browse normal tabs.
 
 > [!NOTE]
-> This application is an **unofficial** app for Devin and is not endorsed, provided, or supported by the developers of Devin.
-
-<p align="center">
-  <img src="assets/dwb.png" alt="DeepWiki Bookmarker Demo" width="100%" />
-</p>
+> This is an **unofficial** app for Devin, and is not endorsed, provided, or supported by the developers of Devin.
 
 ## Installation
 
-[![Latest Release](https://img.shields.io/badge/Release-latest-2ea44f?style=for-the-badge&logo=github)](https://github.com/ynqa/dwb/releases/latest)
+Requires Chrome 116 or newer.
 
-### macOS
+1. Download the Chrome ZIP from [Releases](https://github.com/ynqa/dwb/releases/latest) and extract it, or build from source below.
+2. Open `chrome://extensions` and enable **Developer mode**.
+3. Click **Load unpacked** and select the extracted folder containing `manifest.json` (or the local `dist` folder).
+4. Pin **DeepWiki Bookmarker** to the toolbar and click its icon to open the side panel.
 
-[![macOS DMG](https://img.shields.io/badge/macOS-DMG-111111?style=for-the-badge&logo=apple)](https://github.com/ynqa/dwb/releases/latest/download/DeepWiki.Bookmarker_universal.dmg)
-[![macOS App Bundle](https://img.shields.io/badge/macOS-app.tar.gz-111111?style=for-the-badge&logo=apple)](https://github.com/ynqa/dwb/releases/latest/download/DeepWiki.Bookmarker_universal.app.tar.gz)
+## Usage
 
-### Windows
+- Visit a repository on `https://deepwiki.com` to save it automatically.
+- Start a search from that repository; its `/search/...` sessions are saved under it.
+- Tracking continues with the panel closed. Each tab keeps its own repository context, including across service worker restarts.
+- Click a saved repository or session to revisit it. An active DeepWiki tab is reused; from other sites, a new tab opens.
+- Expand repository groups to see sessions. Right-click to rename sessions or delete entries.
+- A session opened directly without a known repository cannot be assigned automatically. Visit its repository first and then open the session in the same tab.
+- Returning to the DeepWiki home page or leaving the site clears that tab's repository context. Deleting a bookmark leaves the current page open; visiting it again records it again.
 
-[![Windows MSI](https://img.shields.io/badge/Windows-MSI-0078D4?style=for-the-badge&logo=windows)](https://github.com/ynqa/dwb/releases/latest/download/DeepWiki.Bookmarker_x64.msi)
-[![Windows EXE](https://img.shields.io/badge/Windows-EXE-0078D4?style=for-the-badge&logo=windows)](https://github.com/ynqa/dwb/releases/latest/download/DeepWiki.Bookmarker_x64.exe)
+## Storage and permissions
 
-### Linux
+Bookmarks are stored locally in `chrome.storage.local`; temporary per-tab repository
+context uses `chrome.storage.session`. Nothing is sent to an external service and
+bookmarks are not synced between devices. Uninstalling the extension removes its data.
+Existing desktop-app data is not imported automatically.
 
-[![Linux AppImage](https://img.shields.io/badge/Linux-AppImage-f39c12?style=for-the-badge&logo=linux)](https://github.com/ynqa/dwb/releases/latest/download/DeepWiki.Bookmarker_amd64.AppImage)
-[![Linux DEB](https://img.shields.io/badge/Linux-DEB-f39c12?style=for-the-badge&logo=debian)](https://github.com/ynqa/dwb/releases/latest/download/DeepWiki.Bookmarker_amd64.deb)
-[![Linux RPM](https://img.shields.io/badge/Linux-RPM-f39c12?style=for-the-badge&logo=redhat)](https://github.com/ynqa/dwb/releases/latest/download/DeepWiki.Bookmarker_x86_64.rpm)
+- `sidePanel`: show the bookmark sidebar.
+- `storage`: persist bookmarks and per-tab context.
+- `webNavigation`: detect page navigation and SPA URL changes, and clear context when leaving DeepWiki. Only DeepWiki repository/session URLs are saved.
+- `https://deepwiki.com/*`: identify and reuse DeepWiki tabs.
 
-## Overview
+Uses [Manifest V3](https://developer.chrome.com/docs/extensions/develop/migrate/what-is-mv3),
+[Side Panel](https://developer.chrome.com/docs/extensions/reference/api/sidePanel),
+[Web Navigation](https://developer.chrome.com/docs/extensions/reference/api/webNavigation),
+and [Storage](https://developer.chrome.com/docs/extensions/reference/api/storage) APIs.
 
-`dwb` automatically tracks URL changes in the embedded DeepWiki WebView and manages the following data:
+## Development
 
-- Repositories
-- Sessions (e.g. `search/xxx`) associated with each repository
+Requires Node.js 22+ and pnpm 10.
 
-## Features
+```sh
+pnpm install --frozen-lockfile
+pnpm test
+pnpm build
+```
 
-- Display of repositories and their sessions
-  - By automatic tracking of DeepWiki URL changes
-- Right-click context menu for easy deletion of repositories and sessions from UI
-  - Also renames the sessions for clarity
-- Check for updates to notify users when a new version is available
+Load `dist` as an unpacked extension. For iterative development, run
+`pnpm dev:extension`, reload the extension in `chrome://extensions`, and reopen the
+panel after changes. `pnpm dev` provides a UI-only browser preview without Chrome
+extension APIs.
+
+Keep versions in `package.json` and `public/manifest.json` in sync. CI runs tests and
+uploads the built `dist` folder as an artifact. Pushes to `release` create
+`dwb-<version>-chrome.zip` with `manifest.json` at the archive root and attach it to
+a draft GitHub release. Chrome Web
+Store publishing is manual. Store installations use Chrome's extension updates;
+unpacked installations must be rebuilt/reloaded manually.

@@ -9,44 +9,28 @@ import {
 	Text,
 } from "@mantine/core";
 import { notifications } from "@mantine/notifications";
-import { invoke } from "@tauri-apps/api/core";
-import { listen } from "@tauri-apps/api/event";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { FiChevronRight, FiHome } from "react-icons/fi";
 import { SidebarContextMenu } from "@/components/SidebarContextMenu";
 import { TitleBar } from "@/components/TitleBar";
 import styles from "@/Dashboard.module.css";
 import { useRepositories } from "@/hooks/useRepositories";
-import {
-	HOME_URL,
-	SIDEBAR_WIDTH,
-	TITLE_BAR_HEIGHT,
-	URL_CHANGED_EVENT,
-} from "@/lib/constants";
+import { HOME_URL } from "@/lib/constants";
 import {
 	formatSessionLabel,
 	normalizeUrl,
 	parseDeepWikiUrl,
 } from "@/lib/deepWikiUrl";
-import {
-	appendSession,
-	findSessionOwner,
-	setSessionAlias,
-	upsertRepository,
-} from "@/lib/repository";
-import { localStorageRepositoryPersistence } from "@/lib/repositoryPersistence";
+import { findSessionOwner } from "@/lib/repository";
+import { openDeepWiki, useActiveTab } from "@/hooks/useActiveTab";
 import {
 	compareRepositorySlug,
 	compareSessionCreatedAt,
 } from "@/lib/repositorySort";
 
-type UrlChangedPayload = {
-	url: string;
-};
-
 export function Dashboard() {
 	// Repository store (Map-based for faster in-memory operations)
-	const [repositoryStore, setRepositoryStore] = useRepositories();
+	const { repositoryStore, mutate, loading, error } = useRepositories();
 	const repositories = useMemo(
 		() =>
 			Array.from(repositoryStore.entries())
@@ -60,15 +44,11 @@ export function Dashboard() {
 		[repositoryStore],
 	);
 	// Currently selected URL
-	const [selectedUrl, setSelectedUrl] = useState(HOME_URL);
+	const [selectedUrl, setSelectedUrl] = useActiveTab();
 	// Open state of repository groups in sidebar
 	const [openedRepositories, setOpenedRepositories] = useState<Set<string>>(
 		() => new Set(),
 	);
-	// Viewport width for responsive design
-	const [viewportWidth, setViewportWidth] = useState(() => window.innerWidth);
-	// Reference to keep track of the current repository context
-	const repositoryContextRef = useRef<string | null>(null);
 	// Inline alias editing state for the selected session
 	const [editingSessionUrl, setEditingSessionUrl] = useState<string | null>(
 		null,
@@ -100,15 +80,6 @@ export function Dashboard() {
 		return findSessionOwner(repositoryStore, selectedUrl);
 	}, [repositoryStore, selectedKind, selectedUrl]);
 
-	// Update viewport width on resize
-	useEffect(() => {
-		const handleResize = () => setViewportWidth(window.innerWidth);
-		window.addEventListener("resize", handleResize);
-		return () => {
-			window.removeEventListener("resize", handleResize);
-		};
-	}, []);
-
 	// Keep selected repository/session owner expanded in sidebar
 	useEffect(() => {
 		if (selectedKind.type === "repository") {
@@ -135,66 +106,16 @@ export function Dashboard() {
 		}
 	}, [selectedKind, selectedSessionOwner]);
 
-	// Listen for URL change events from the backend
-	useEffect(() => {
-		let unlisten: (() => void) | undefined;
-
-		const updateByDetectedUrl = (rawUrl: string) => {
-			const normalized = normalizeUrl(rawUrl);
-			const kind = parseDeepWikiUrl(normalized);
-			setSelectedUrl(normalized);
-
-			if (kind.type === "home") {
-				repositoryContextRef.current = null;
-				return;
-			}
-
-			if (kind.type === "repository") {
-				repositoryContextRef.current = kind.slug;
-				setRepositoryStore((prev) => upsertRepository(prev, kind.slug));
-				return;
-			}
-
-			if (kind.type === "session") {
-				setRepositoryStore((prev) => {
-					const targetRepository =
-						findSessionOwner(prev, normalized) ?? repositoryContextRef.current;
-					if (!targetRepository) {
-						return prev;
-					}
-					repositoryContextRef.current = targetRepository;
-					return appendSession(prev, targetRepository, normalized);
-				});
-			}
-		};
-
-		const setupListener = async () => {
-			unlisten = await listen<UrlChangedPayload>(URL_CHANGED_EVENT, (event) => {
-				updateByDetectedUrl(event.payload.url);
-			});
-		};
-
-		setupListener().catch((error: unknown) => {
-			notifyError(`Failed to initialize event listener: ${String(error)}`);
-		});
-
-		return () => {
-			unlisten?.();
-		};
-	}, [notifyError, setRepositoryStore]);
-
-	// Function to navigate to a given URL with optional repository context
 	const navigate = useCallback(
-		async (url: string, repositoryContext: string | null) => {
-			repositoryContextRef.current = repositoryContext;
-			setSelectedUrl(normalizeUrl(url));
+		async (url: string) => {
 			try {
-				await invoke("navigate_deepwiki", { url });
+				await openDeepWiki(url);
+				setSelectedUrl(normalizeUrl(url));
 			} catch (error: unknown) {
 				notifyError(String(error));
 			}
 		},
-		[notifyError],
+		[notifyError, setSelectedUrl],
 	);
 
 	// Handlers for starting, canceling, and committing session alias edits
@@ -215,13 +136,11 @@ export function Dashboard() {
 	// Commit the edited alias to the repository store
 	const commitSessionAliasEdit = useCallback(
 		(sessionUrl: string, aliasDraft: string) => {
-			setRepositoryStore((prev) =>
-				setSessionAlias(prev, sessionUrl, aliasDraft),
-			);
+			mutate({ type: "rename-session", url: sessionUrl, alias: aliasDraft });
 			setEditingSessionUrl(null);
 			setSessionAliasDraft("");
 		},
-		[setRepositoryStore],
+		[mutate],
 	);
 
 	// Handler to initiate alias editing from the context menu
@@ -243,46 +162,17 @@ export function Dashboard() {
 		sessionAliasInputRef.current?.select();
 	}, [editingSessionUrl]);
 
-	// Handlers for deleting repositories and sessions
-	const handleDeleteRepository = useCallback(
-		(slug: string) => {
-			if (repositoryContextRef.current === slug) {
-				repositoryContextRef.current = null;
-			}
-			setOpenedRepositories((prev) => {
-				if (!prev.has(slug)) {
-					return prev;
-				}
-				const next = new Set(prev);
-				next.delete(slug);
-				return next;
-			});
-			setRepositoryStore((prev) =>
-				localStorageRepositoryPersistence.deleteRepository(prev, slug),
-			);
-
-			const shouldLeaveCurrent =
-				(selectedKind.type === "repository" && selectedKind.slug === slug) ||
-				(selectedKind.type === "session" && selectedSessionOwner === slug);
-			if (shouldLeaveCurrent) {
-				void navigate(HOME_URL, null);
-			}
-		},
-		[navigate, selectedKind, selectedSessionOwner, setRepositoryStore],
-	);
-
-	// Handler for deleting a session
-	const handleDeleteSession = useCallback(
-		(slug: string, sessionUrl: string) => {
-			setRepositoryStore((prev) =>
-				localStorageRepositoryPersistence.deleteSession(prev, slug, sessionUrl),
-			);
-			if (selectedUrl === sessionUrl) {
-				void navigate(`https://deepwiki.com/${slug}`, slug);
-			}
-		},
-		[navigate, selectedUrl, setRepositoryStore],
-	);
+	const handleDeleteRepository = (slug: string) => {
+		mutate({ type: "delete-repository", slug });
+		setOpenedRepositories((previous) => {
+			const next = new Set(previous);
+			next.delete(slug);
+			return next;
+		});
+	};
+	const handleDeleteSession = (slug: string, url: string) => {
+		mutate({ type: "delete-session", slug, url });
+	};
 
 	// Toggle the fold state of a repository group in the sidebar
 	const toggleRepositoryFold = useCallback((slug: string) => {
@@ -297,11 +187,9 @@ export function Dashboard() {
 		});
 	}, []);
 
-	const navbarWidth = Math.min(SIDEBAR_WIDTH, viewportWidth);
-
 	return (
 		<Flex className={styles.dashboardRoot}>
-			<TitleBar height={TITLE_BAR_HEIGHT} title="d('w')b" />
+			<TitleBar />
 
 			<Flex className={styles.dashboardBody}>
 				<SidebarContextMenu
@@ -310,18 +198,14 @@ export function Dashboard() {
 					onDeleteSession={handleDeleteSession}
 				>
 					{({ openContextMenu, sidebarRef }) => (
-						<Box
-							ref={sidebarRef}
-							className={styles.sidebar}
-							style={{ width: `${navbarWidth}px` }}
-						>
+						<Box ref={sidebarRef} className={styles.sidebar}>
 							<Stack className={styles.sidebarStack}>
 								<NavLink
 									active={selectedKind.type === "home"}
 									className={styles.navLinkRoot}
 									label="Home"
 									leftSection={<FiHome size={16} />}
-									onClick={() => void navigate(HOME_URL, null)}
+									onClick={() => void navigate(HOME_URL)}
 									variant={selectedKind.type === "home" ? "filled" : "subtle"}
 								/>
 
@@ -340,6 +224,24 @@ export function Dashboard() {
 									offsetScrollbars
 								>
 									<Stack className={styles.repositoryList}>
+										{loading ? (
+											<Text size="sm" c="dimmed">
+												Loading bookmarks…
+											</Text>
+										) : null}
+										{error ? (
+											<Text size="sm" c="red">
+												{error}
+											</Text>
+										) : null}
+										{!loading && !error && repositories.length === 0 ? (
+											<Text size="sm" c="dimmed">
+												Open DeepWiki and visit a repository to start. Your
+												repositories and search sessions will appear here
+												automatically.
+											</Text>
+										) : null}
+
 										{repositories.map((repo) => {
 											const isRepoSelected =
 												selectedKind.type === "repository" &&
@@ -364,10 +266,7 @@ export function Dashboard() {
 															</Text>
 														}
 														onClick={() =>
-															void navigate(
-																`https://deepwiki.com/${repo.slug}`,
-																repo.slug,
-															)
+															void navigate(`https://deepwiki.com/${repo.slug}`)
 														}
 														onContextMenu={(event) =>
 															openContextMenu(event, {
@@ -392,7 +291,10 @@ export function Dashboard() {
 																		toggleRepositoryFold(repo.slug);
 																	}}
 																	onKeyDown={(event) => {
-																		if (event.key === " ") {
+																		if (
+																			event.key === " " ||
+																			event.key === "Enter"
+																		) {
 																			event.preventDefault();
 																			event.stopPropagation();
 																			toggleRepositoryFold(repo.slug);
@@ -483,7 +385,7 @@ export function Dashboard() {
 																					if (isSessionEditing) {
 																						return;
 																					}
-																					void navigate(session.url, repo.slug);
+																					void navigate(session.url);
 																				}}
 																				onContextMenu={(event) =>
 																					openContextMenu(event, {

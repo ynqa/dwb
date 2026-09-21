@@ -5,18 +5,17 @@ import ReactDOM from "react-dom/client";
 import "@mantine/core/styles.css";
 import "@mantine/notifications/styles.css";
 import "@/App.css";
-import App from "@/App";
-import { SIDEBAR_WIDTH } from "@/lib/constants";
+import { Dashboard } from "@/Dashboard";
 
 ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
 	<React.StrictMode>
-		<MantineProvider defaultColorScheme="light">
+		<MantineProvider defaultColorScheme="dark">
 			<Notifications
 				position="bottom-left"
-				containerWidth={SIDEBAR_WIDTH - 24}
+				containerWidth="calc(100% - 24px)"
 				zIndex={10_000}
 			/>
-			<App />
+			<Dashboard />
 		</MantineProvider>
 	</React.StrictMode>,
 );

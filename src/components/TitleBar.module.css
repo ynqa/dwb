@@ -1,10 +1,11 @@
 .titleBar {
 	display: flex;
+	gap: 10px;
 	align-items: center;
-	justify-content: center;
+	justify-content: flex-start;
 	width: 100%;
-	height: var(--title-bar-height);
-	min-height: var(--title-bar-height);
+	height: 60px;
+	min-height: 60px;
 	padding-inline: 14px;
 	background-color: #2c2c2c;
 	user-select: none;
@@ -13,7 +14,7 @@
 }
 
 .title {
-	font-family: "DynaPuff", system-ui, sans-serif;
+	font-family: system-ui, sans-serif;
 	font-size: var(--mantine-font-size-sm);
 	font-weight: 600;
 	letter-spacing: 0.02em;
