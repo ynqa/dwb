@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { HOME_URL } from "@/lib/constants";
-import { normalizeUrl } from "@/lib/deepWikiUrl";
+import { HOME_URL } from "@/deepwiki/constants";
+import { normalizeUrl } from "@/deepwiki/deepWikiUrl";
 
 describe("normalizeUrl", () => {
 	it("normalizes DeepWiki root URL to HOME_URL", () => {

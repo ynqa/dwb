@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
-import { openDeepWiki } from "@/hooks/useActiveTab";
-import { REPOSITORIES_STORAGE_KEY } from "@/lib/repositoryPersistence";
-import { createExtensionPanelClient } from "./panelClient";
+import { createDeepWikiPanelClient } from "@/deepwiki/panelClient";
+import { REPOSITORIES_STORAGE_KEY } from "@/deepwiki/repositoryPersistence";
+import { createBrowserPlatform } from "./browserPlatform";
 
 function event() {
 	const listeners = new Set<(...args: any[]) => void>();
@@ -43,8 +43,10 @@ function setup() {
 			onUpdated: event(),
 		},
 	};
-	const client = createExtensionPanelClient(
-		api as unknown as Parameters<typeof createExtensionPanelClient>[0],
+	const client = createDeepWikiPanelClient(
+		createBrowserPlatform(
+			api as unknown as Parameters<typeof createBrowserPlatform>[0],
+		),
 	);
 	return { api, client };
 }
@@ -95,16 +97,16 @@ describe("extension panel client without native sidePanel", () => {
 		api.tabs.onUpdated.emit();
 		expect(listener).toHaveBeenCalledTimes(2);
 		const url = "https://deepwiki.com/search/one";
-		await openDeepWiki(client, url);
+		await client.navigation.openUrl(url);
 		expect(api.tabs.update).toHaveBeenCalledWith(1, { url });
 		api.tabs.query.mockResolvedValueOnce([
 			{ id: 3, windowId: 2, url: "https://example.com" },
 		]);
-		await openDeepWiki(client, url);
+		await client.navigation.openUrl(url);
 		expect(api.tabs.create).toHaveBeenCalledWith({ url, windowId: 2 });
-		await expect(openDeepWiki(client, "https://example.com")).rejects.toThrow(
-			"Only DeepWiki URLs",
-		);
+		await expect(
+			client.navigation.openUrl("https://example.com"),
+		).rejects.toThrow("Only DeepWiki URLs");
 		expect(api.tabs.create).toHaveBeenCalledTimes(1);
 		expect(api.tabs.update).toHaveBeenCalledTimes(1);
 	});

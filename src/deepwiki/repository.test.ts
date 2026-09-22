@@ -3,7 +3,7 @@ import {
 	appendSession,
 	type RepositoryStore,
 	setSessionAlias,
-} from "@/lib/repository";
+} from "@/deepwiki/repository";
 
 describe("setSessionAlias", () => {
 	it("stores a trimmed alias for an existing session", () => {

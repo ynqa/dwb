@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { REPOSITORIES_STORAGE_KEY } from "@/lib/repositoryPersistence";
+import { REPOSITORIES_STORAGE_KEY } from "@/deepwiki/repositoryPersistence";
 
 function event() {
 	const listeners: Array<(...args: any[]) => any> = [];
@@ -30,6 +30,7 @@ function mockChrome(local = storage(), session = storage()) {
 		storage: { local, session },
 		runtime: {
 			id: "dwb-test",
+			getURL: (path: string) => `chrome-extension://dwb-test/${path}`,
 			onInstalled: event(),
 			onStartup: event(),
 			onMessage: event(),

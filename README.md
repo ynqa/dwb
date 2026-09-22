@@ -63,27 +63,39 @@ extension APIs.
 
 ### UI and browser integration
 
-The bookmark UI and native side panel presentation are separate:
+The extension implementation and DeepWiki application are separated by directory:
 
-- `src/Dashboard.tsx`, `src/hooks`, and `src/lib` contain the UI and DeepWiki
-  behavior. They use the browser-independent `PanelClient` interface in
-  `src/panel/PanelClient.ts`; they do not call extension APIs.
-- `src/extension/panelClient.ts` implements bookmark storage, worker messages,
-  and tab navigation for the UI. `src/main.tsx` injects this client (or the
-  development preview client) into the dashboard.
-- `src/extension/bookmarkWorker.ts` tracks navigation and serializes bookmark
-  writes independently of any open UI.
-- `src/extension/nativeSidePanel.ts` only configures the browser's native
-  `sidePanel` behavior. `src/extension/background.ts` connects it and the worker
-  at startup. A missing, rejected, or unresponsive side panel API does not block
-  bookmark initialization or edits.
+- `src/extension/` owns browser API calls, sender authentication, event adapters,
+  native side panel configuration, extension entry points, and `manifest.json`.
+  `browserPlatform.ts` translates browser operations into neutral capabilities;
+  it does not decide which sites to track or which tabs to reuse.
+- `src/deepwiki/` owns repository/session models, URL classification, per-tab
+  repository context, serialized bookmark writes, and the tab reuse policy.
+  `bookmarkService.ts` and `panelClient.ts` depend only on `BrowserPlatform`,
+  not extension APIs or vendor types.
+- `src/platform/BrowserPlatform.ts` defines the browser-independent contracts
+  for storage, tabs, navigation events, lifecycle events, and messages.
+- `src/Dashboard.tsx`, `src/hooks`, and `src/components` implement the UI using
+  `src/panel/PanelClient.ts`. `src/main.tsx` only mounts the supplied client.
+- Only `src/extension/background.ts` and `src/extension/panel.tsx` assemble the
+  application and browser adapter. The panel entry selects the development
+  preview client when extension APIs are unavailable.
+
+The build emits `src/extension/manifest.json` as `dist/manifest.json`. The root
+`index.html` and `vite.config.ts` reference the extension entry points; shared
+images remain in `public/icons/`. Storage keys and the persisted data format
+are unchanged, so existing bookmarks and per-tab context remain usable.
+
+Tests exercise the DeepWiki service without extension APIs, verify browser
+integration, and enforce the source directory dependency boundary. Native side
+panel failures do not block bookmark initialization or edits.
 
 An alternative presentation can reuse the dashboard and provide a `PanelClient`
 with navigation appropriate to its browsing context. This separation does not
 add an automatic tab/window fallback or make unsupported native side panels work.
 The packaged extension still opens through the browser's native Side Panel API.
 
-Keep versions in `package.json` and `public/manifest.json` in sync. CI runs tests and
+Keep versions in `package.json` and `src/extension/manifest.json` in sync. CI runs tests and
 uploads the built `dist` folder as an artifact. GitHub releases and Chrome Web
 Store publishing are manual. Store installations use Chrome's extension updates;
 unpacked installations must be rebuilt/reloaded manually.

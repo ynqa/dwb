@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
-import type { RepositoryStore } from "@/lib/repository";
+import type { RepositoryStore } from "@/deepwiki/repository";
 import {
 	parsePersistedRepositories,
 	serializeRepositories,
-} from "@/lib/repositoryPersistence";
+} from "@/deepwiki/repositoryPersistence";
 
 describe("repository persistence", () => {
 	it("preserves repositories, timestamps, and aliases across a storage round trip", () => {

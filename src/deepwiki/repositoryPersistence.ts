@@ -3,11 +3,11 @@ import type {
 	RepositoryStore,
 	Session,
 	SessionUrl,
-} from "@/lib/repository";
+} from "@/deepwiki/repository";
 import {
 	compareRepositorySlug,
 	compareSessionCreatedAt,
-} from "@/lib/repositorySort";
+} from "@/deepwiki/repositorySort";
 
 export const REPOSITORIES_STORAGE_KEY = "dwb.repositories.v1";
 const REPOSITORIES_STORAGE_VERSION = 1 as const;

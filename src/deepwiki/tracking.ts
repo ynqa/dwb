@@ -1,10 +1,10 @@
-import { normalizeUrl, parseDeepWikiUrl } from "@/lib/deepWikiUrl";
+import { normalizeUrl, parseDeepWikiUrl } from "@/deepwiki/deepWikiUrl";
 import {
 	appendSession,
 	findSessionOwner,
 	type RepositoryStore,
 	upsertRepository,
-} from "@/lib/repository";
+} from "@/deepwiki/repository";
 
 export function trackNavigation(
 	store: RepositoryStore,

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { notifications } from "@mantine/notifications";
-import type { RepositoryCommand } from "@/lib/repositoryCommand";
-import type { RepositoryStore } from "@/lib/repository";
+import type { RepositoryCommand } from "@/deepwiki/repositoryCommand";
+import type { RepositoryStore } from "@/deepwiki/repository";
 import type { PanelClient } from "@/panel/PanelClient";
 
 export function useRepositories(client: PanelClient) {

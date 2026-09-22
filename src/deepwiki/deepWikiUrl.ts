@@ -1,4 +1,4 @@
-import { HOME_ORIGIN, HOME_URL } from "@/lib/constants";
+import { HOME_ORIGIN, HOME_URL } from "@/deepwiki/constants";
 
 type UrlKind =
 	| { type: "home" } // Home page

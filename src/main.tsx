@@ -6,22 +6,19 @@ import "@mantine/core/styles.css";
 import "@mantine/notifications/styles.css";
 import "@/App.css";
 import { Dashboard } from "@/Dashboard";
-import { createExtensionPanelClient } from "@/extension/panelClient";
-import { previewClient } from "@/panel/previewClient";
+import type { PanelClient } from "@/panel/PanelClient";
 
-const client = globalThis.chrome?.runtime?.id
-	? createExtensionPanelClient(chrome)
-	: previewClient;
-
-ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
-	<React.StrictMode>
-		<MantineProvider defaultColorScheme="dark">
-			<Notifications
-				position="bottom-left"
-				containerWidth="calc(100% - 24px)"
-				zIndex={10_000}
-			/>
-			<Dashboard client={client} />
-		</MantineProvider>
-	</React.StrictMode>,
-);
+export function mountPanel(client: PanelClient) {
+	ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
+		<React.StrictMode>
+			<MantineProvider defaultColorScheme="dark">
+				<Notifications
+					position="bottom-left"
+					containerWidth="calc(100% - 24px)"
+					zIndex={10_000}
+				/>
+				<Dashboard client={client} />
+			</MantineProvider>
+		</React.StrictMode>,
+	);
+}

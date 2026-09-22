@@ -1,8 +1,8 @@
-import type { RepositoryCommand } from "@/lib/repositoryCommand";
+import type { RepositoryCommand } from "@/deepwiki/repositoryCommand";
 
-export type ExtensionCommand = RepositoryCommand | { type: "initialize" };
+export type BookmarkCommand = RepositoryCommand | { type: "initialize" };
 
-export function isCommand(value: unknown): value is ExtensionCommand {
+export function isCommand(value: unknown): value is BookmarkCommand {
 	if (!value || typeof value !== "object") return false;
 	const message = value as Record<string, unknown>;
 	switch (message.type) {

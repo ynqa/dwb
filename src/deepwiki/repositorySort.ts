@@ -1,4 +1,4 @@
-import type { RepositorySlug } from "@/lib/repository";
+import type { RepositorySlug } from "@/deepwiki/repository";
 
 // Compare two repository slugs in a case-insensitive manner
 export const compareRepositorySlug = (

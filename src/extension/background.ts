@@ -1,4 +1,6 @@
-import "./bookmarkWorker";
+import { startBookmarkService } from "@/deepwiki/bookmarkService";
+import { createBrowserPlatform } from "./browserPlatform";
 import { registerNativeSidePanel } from "./nativeSidePanel";
 
-(chrome);
+startBookmarkService(createBrowserPlatform(chrome));
+registerNativeSidePanel(chrome);

@@ -15,19 +15,19 @@ import { SidebarContextMenu } from "@/components/SidebarContextMenu";
 import { TitleBar } from "@/components/TitleBar";
 import styles from "@/Dashboard.module.css";
 import { useRepositories } from "@/hooks/useRepositories";
-import { HOME_URL } from "@/lib/constants";
+import { HOME_URL } from "@/deepwiki/constants";
 import {
 	formatSessionLabel,
 	normalizeUrl,
 	parseDeepWikiUrl,
-} from "@/lib/deepWikiUrl";
-import { findSessionOwner } from "@/lib/repository";
-import { openDeepWiki, useActiveTab } from "@/hooks/useActiveTab";
+} from "@/deepwiki/deepWikiUrl";
+import { findSessionOwner } from "@/deepwiki/repository";
+import { useActiveTab } from "@/hooks/useActiveTab";
 import type { PanelClient } from "@/panel/PanelClient";
 import {
 	compareRepositorySlug,
 	compareSessionCreatedAt,
-} from "@/lib/repositorySort";
+} from "@/deepwiki/repositorySort";
 
 export function Dashboard({ client }: { client: PanelClient }) {
 	// Repository store (Map-based for faster in-memory operations)
@@ -110,7 +110,7 @@ export function Dashboard({ client }: { client: PanelClient }) {
 	const navigate = useCallback(
 		async (url: string) => {
 			try {
-				await openDeepWiki(client, url);
+				await client.navigation.openUrl(url);
 				setSelectedUrl(normalizeUrl(url));
 			} catch (error: unknown) {
 				notifyError(String(error));

@@ -1,5 +1,5 @@
 // Browser presentation only: no DeepWiki, bookmark, or UI dependencies.
-export function (
+export function registerNativeSidePanel(
 	api: Pick<typeof chrome, "runtime"> & {
 		sidePanel?: Pick<typeof chrome.sidePanel, "setPanelBehavior">;
 	},

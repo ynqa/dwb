@@ -1,5 +1,5 @@
-import type { RepositoryStore } from "@/lib/repository";
-import type { RepositoryCommand } from "@/lib/repositoryCommand";
+import type { RepositoryStore } from "@/deepwiki/repository";
+import type { RepositoryCommand } from "@/deepwiki/repositoryCommand";
 
 // Services required by the UI, independent of where the panel is displayed.
 export interface PanelClient {
@@ -11,6 +11,6 @@ export interface PanelClient {
 	navigation: {
 		readUrl(): Promise<string>;
 		subscribe(listener: () => void): () => void;
-		openUrl(url: string, reuseOrigin: string): Promise<void>;
+		openUrl(url: string): Promise<void>;
 	};
 }

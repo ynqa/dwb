@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
-import { HOME_ORIGIN } from "@/lib/constants";
-import { normalizeUrl } from "@/lib/deepWikiUrl";
+import { normalizeUrl } from "@/deepwiki/deepWikiUrl";
 import type { PanelClient } from "@/panel/PanelClient";
 
 export function useActiveTab(client: PanelClient) {
@@ -27,10 +26,4 @@ export function useActiveTab(client: PanelClient) {
 		};
 	}, [client]);
 	return [url, setUrl] as const;
-}
-
-export async function openDeepWiki(client: PanelClient, url: string) {
-	if (new URL(url).origin !== HOME_ORIGIN)
-		throw new Error("Only DeepWiki URLs can be opened.");
-	await client.navigation.openUrl(url, HOME_ORIGIN);
 }
