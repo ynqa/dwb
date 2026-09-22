@@ -23,14 +23,15 @@ import {
 } from "@/lib/deepWikiUrl";
 import { findSessionOwner } from "@/lib/repository";
 import { openDeepWiki, useActiveTab } from "@/hooks/useActiveTab";
+import type { PanelClient } from "@/panel/PanelClient";
 import {
 	compareRepositorySlug,
 	compareSessionCreatedAt,
 } from "@/lib/repositorySort";
 
-export function Dashboard() {
+export function Dashboard({ client }: { client: PanelClient }) {
 	// Repository store (Map-based for faster in-memory operations)
-	const { repositoryStore, mutate, loading, error } = useRepositories();
+	const { repositoryStore, mutate, loading, error } = useRepositories(client);
 	const repositories = useMemo(
 		() =>
 			Array.from(repositoryStore.entries())
@@ -44,7 +45,7 @@ export function Dashboard() {
 		[repositoryStore],
 	);
 	// Currently selected URL
-	const [selectedUrl, setSelectedUrl] = useActiveTab();
+	const [selectedUrl, setSelectedUrl] = useActiveTab(client);
 	// Open state of repository groups in sidebar
 	const [openedRepositories, setOpenedRepositories] = useState<Set<string>>(
 		() => new Set(),
@@ -109,13 +110,13 @@ export function Dashboard() {
 	const navigate = useCallback(
 		async (url: string) => {
 			try {
-				await openDeepWiki(url);
+				await openDeepWiki(client, url);
 				setSelectedUrl(normalizeUrl(url));
 			} catch (error: unknown) {
 				notifyError(String(error));
 			}
 		},
-		[notifyError, setSelectedUrl],
+		[client, notifyError, setSelectedUrl],
 	);
 
 	// Handlers for starting, canceling, and committing session alias edits

@@ -35,7 +35,10 @@ function mockChrome(local = storage(), session = storage()) {
 			onMessage: event(),
 		},
 		sidePanel: { setPanelBehavior: vi.fn(async () => {}) },
-		tabs: { onRemoved: event(), query: vi.fn(async () => []) },
+		tabs: {
+			onRemoved: event(),
+			query: vi.fn(async (): Promise<chrome.tabs.Tab[]> => []),
+		},
 		webNavigation: {
 			onCommitted: event(),
 			onHistoryStateUpdated: event(),
@@ -46,9 +49,11 @@ function mockChrome(local = storage(), session = storage()) {
 async function boot(
 	local?: ReturnType<typeof storage>,
 	session?: ReturnType<typeof storage>,
+	configure?: (api: ReturnType<typeof mockChrome>) => void,
 ) {
 	vi.resetModules();
 	api = mockChrome(local, session);
+	configure?.(api);
 	vi.stubGlobal("chrome", api);
 	await import("./background");
 }
@@ -96,6 +101,52 @@ beforeEach(async () => {
 });
 
 describe("extension background", () => {
+	it.each([
+		"missing",
+		"rejected",
+		"pending",
+	])("tracks existing tabs and accepts edits when native sidePanel is %s", async (failure) => {
+		const logging = vi.spyOn(console, "warn").mockImplementation(() => {});
+		try {
+			await boot(undefined, undefined, (browser) => {
+				if (failure === "missing") Reflect.deleteProperty(browser, "sidePanel");
+				else if (failure === "rejected")
+					browser.sidePanel.setPanelBehavior.mockRejectedValue(
+						new Error("Unsupported"),
+					);
+				else
+					browser.sidePanel.setPanelBehavior.mockImplementation(
+						() => new Promise<void>(() => {}),
+					);
+				browser.tabs.query.mockResolvedValue([
+					{ id: 1, url: "https://deepwiki.com/owner/repo" } as chrome.tabs.Tab,
+				]);
+			});
+			api.runtime.onStartup.emit();
+			await flush();
+			expect(saved().map((repo) => repo.slug)).toEqual(["owner/repo"]);
+			navigate(1, "/search/one", true);
+			await command({
+				type: "rename-session",
+				url: "https://deepwiki.com/search/one",
+				alias: "Notes",
+			});
+			expect(saved()[0].sessions[0].alias).toBe("Notes");
+		} finally {
+			logging.mockRestore();
+		}
+	});
+	it("configures native presentation independently of bookmark reads", async () => {
+		expect(api.sidePanel.setPanelBehavior).toHaveBeenCalledWith({
+			openPanelOnActionClick: true,
+		});
+		api.sidePanel.setPanelBehavior.mockClear();
+		await flush();
+		expect(api.sidePanel.setPanelBehavior).not.toHaveBeenCalled();
+		api.runtime.onInstalled.emit();
+		await flush();
+		expect(api.sidePanel.setPanelBehavior).toHaveBeenCalledTimes(1);
+	});
 	it("records SPA sessions with the panel closed and isolates simultaneous tabs", async () => {
 		navigate(1, "/owner/a");
 		navigate(2, "/owner/b");

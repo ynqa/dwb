@@ -1,50 +1,31 @@
 import { useEffect, useState } from "react";
 import { notifications } from "@mantine/notifications";
-import { sendCommand, type RepositoryCommand } from "@/extension/messages";
+import type { RepositoryCommand } from "@/lib/repositoryCommand";
 import type { RepositoryStore } from "@/lib/repository";
-import {
-	parsePersistedRepositories,
-	REPOSITORIES_STORAGE_KEY,
-} from "@/lib/repositoryPersistence";
+import type { PanelClient } from "@/panel/PanelClient";
 
-export function useRepositories() {
+export function useRepositories(client: PanelClient) {
 	const [repositoryStore, setRepositoryStore] = useState<RepositoryStore>(
 		new Map(),
 	);
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState<string | null>(null);
 	useEffect(() => {
-		if (!globalThis.chrome?.runtime?.id) {
-			setError(
-				"Load the built extension in Chrome to save your DeepWiki browsing history.",
-			);
-			setLoading(false);
-			return;
-		}
+		setLoading(true);
+		setError(null);
 		let cancelled = false;
 		let revision = 0;
-		const onChanged = (
-			changes: Record<string, chrome.storage.StorageChange>,
-			area: string,
-		) => {
-			if (area === "local" && changes[REPOSITORIES_STORAGE_KEY]) {
-				revision++;
-				setRepositoryStore(
-					parsePersistedRepositories(
-						changes[REPOSITORIES_STORAGE_KEY].newValue,
-					),
-				);
-			}
-		};
-		chrome.storage.onChanged.addListener(onChanged);
+		const unsubscribe = client.bookmarks.subscribe((store) => {
+			if (cancelled) return;
+			revision++;
+			setRepositoryStore(store);
+		});
 		const initialRevision = revision;
-		void sendCommand({ type: "initialize" })
-			.then(() => chrome.storage.local.get(REPOSITORIES_STORAGE_KEY))
-			.then((data) => {
+		void client.bookmarks
+			.read()
+			.then((store) => {
 				if (!cancelled && revision === initialRevision)
-					setRepositoryStore(
-						parsePersistedRepositories(data[REPOSITORIES_STORAGE_KEY]),
-					);
+					setRepositoryStore(store);
 			})
 			.catch((error: unknown) => {
 				if (!cancelled) setError(`Failed to load bookmarks: ${String(error)}`);
@@ -54,11 +35,11 @@ export function useRepositories() {
 			});
 		return () => {
 			cancelled = true;
-			chrome.storage.onChanged.removeListener(onChanged);
+			unsubscribe();
 		};
-	}, []);
+	}, [client]);
 	const mutate = (command: RepositoryCommand) => {
-		void sendCommand(command).catch((error: unknown) => {
+		void client.bookmarks.execute(command).catch((error: unknown) => {
 			notifications.show({
 				title: "Could not save changes",
 				message: String(error),

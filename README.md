@@ -61,6 +61,28 @@ Load `dist` as an unpacked extension. For iterative development, run
 panel after changes. `pnpm dev` provides a UI-only browser preview without Chrome
 extension APIs.
 
+### UI and browser integration
+
+The bookmark UI and native side panel presentation are separate:
+
+- `src/Dashboard.tsx`, `src/hooks`, and `src/lib` contain the UI and DeepWiki
+  behavior. They use the browser-independent `PanelClient` interface in
+  `src/panel/PanelClient.ts`; they do not call extension APIs.
+- `src/extension/panelClient.ts` implements bookmark storage, worker messages,
+  and tab navigation for the UI. `src/main.tsx` injects this client (or the
+  development preview client) into the dashboard.
+- `src/extension/bookmarkWorker.ts` tracks navigation and serializes bookmark
+  writes independently of any open UI.
+- `src/extension/nativeSidePanel.ts` only configures the browser's native
+  `sidePanel` behavior. `src/extension/background.ts` connects it and the worker
+  at startup. A missing, rejected, or unresponsive side panel API does not block
+  bookmark initialization or edits.
+
+An alternative presentation can reuse the dashboard and provide a `PanelClient`
+with navigation appropriate to its browsing context. This separation does not
+add an automatic tab/window fallback or make unsupported native side panels work.
+The packaged extension still opens through the browser's native Side Panel API.
+
 Keep versions in `package.json` and `public/manifest.json` in sync. CI runs tests and
 uploads the built `dist` folder as an artifact. GitHub releases and Chrome Web
 Store publishing are manual. Store installations use Chrome's extension updates;

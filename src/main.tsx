@@ -6,6 +6,12 @@ import "@mantine/core/styles.css";
 import "@mantine/notifications/styles.css";
 import "@/App.css";
 import { Dashboard } from "@/Dashboard";
+import { createExtensionPanelClient } from "@/extension/panelClient";
+import { previewClient } from "@/panel/previewClient";
+
+const client = globalThis.chrome?.runtime?.id
+	? createExtensionPanelClient(chrome)
+	: previewClient;
 
 ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
 	<React.StrictMode>
@@ -15,7 +21,7 @@ ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
 				containerWidth="calc(100% - 24px)"
 				zIndex={10_000}
 			/>
-			<Dashboard />
+			<Dashboard client={client} />
 		</MantineProvider>
 	</React.StrictMode>,
 );

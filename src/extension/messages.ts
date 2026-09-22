@@ -1,7 +1,4 @@
-export type RepositoryCommand =
-	| { type: "rename-session"; url: string; alias: string }
-	| { type: "delete-session"; slug: string; url: string }
-	| { type: "delete-repository"; slug: string };
+import type { RepositoryCommand } from "@/lib/repositoryCommand";
 
 export type ExtensionCommand = RepositoryCommand | { type: "initialize" };
 
@@ -24,10 +21,4 @@ export function isCommand(value: unknown): value is ExtensionCommand {
 		default:
 			return false;
 	}
-}
-
-export async function sendCommand(command: ExtensionCommand): Promise<void> {
-	const result = await chrome.runtime.sendMessage(command);
-	if (!result?.ok)
-		throw new Error(result?.error ?? "The extension did not respond.");
 }
